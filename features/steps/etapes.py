@@ -123,3 +123,56 @@ def etape_json(context, n):
 @then('la première saisie concerne l\'opérateur "{operateur}"')
 def etape_json_operateur(context, operateur):
     assert context.reponse.get_json()[0]["operateur"] == operateur
+
+
+# ---------- Sécurité et mode démo ----------
+
+@given("l'application est en mode démo")
+def etape_mode_demo(context):
+    from app import app
+    app.config["DEMO"] = True
+    context.autre_client = app.test_client()
+
+
+@when('un premier visiteur déclare une sortie de 5 pièces "{piece}"')
+def etape_visiteur1(context, piece):
+    context.reponse = context.client.post("/", data={"operateur": "Visiteur 1", "piece": piece, "quantite": "5"})
+
+
+@then('un second visiteur ne voit pas la pièce "{piece}"')
+def etape_visiteur2(context, piece):
+    assert piece not in context.autre_client.get("/").get_data(as_text=True)
+
+
+@then('le premier visiteur voit la pièce "{piece}"')
+def etape_visiteur1_voit(context, piece):
+    assert piece in context.client.get("/").get_data(as_text=True)
+
+
+@when("un visiteur enregistre {n:d} saisies")
+def etape_n_saisies(context, n):
+    for i in range(n):
+        context.reponse = context.client.post("/", data={"operateur": "V", "piece": f"P{i}", "quantite": "1"})
+
+
+@then('la dernière saisie est refusée avec le message "{message}"')
+def etape_derniere_refusee(context, message):
+    assert context.reponse.status_code == 400
+    assert message in context.reponse.get_data(as_text=True)
+
+
+@when("je déclare une sortie avec un opérateur de {n:d} caractères")
+def etape_operateur_long(context, n):
+    context.reponse = context.client.post("/", data={"operateur": "A" * n, "piece": "X", "quantite": "1"})
+
+
+@then('la cellule exportée vaut "{valeur}"')
+def etape_cellule(context, valeur):
+    contenu = context.reponse.get_data(as_text=True).lstrip("﻿")
+    cellules = [c for ligne in csv.reader(io.StringIO(contenu), delimiter=";") for c in ligne]
+    assert valeur in cellules, cellules
+
+
+@then('la réponse contient l\'en-tête de sécurité "{entete}"')
+def etape_entete_securite(context, entete):
+    assert entete in context.reponse.headers, dict(context.reponse.headers)

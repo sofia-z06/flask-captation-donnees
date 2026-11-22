@@ -14,6 +14,7 @@ def before_scenario(context, scenario):
     os.remove(chemin)  # le fichier n'existe pas au départ : aucune saisie
     app.config["FICHIER"] = chemin
     app.config["TESTING"] = True
+    app.config["DEMO"] = False
     context.fichier = chemin
     context.client = app.test_client()
 
