@@ -1,2 +1,4 @@
 saisies.csv
 rapport_*.txt
+.DS_Store
+__pycache__/
