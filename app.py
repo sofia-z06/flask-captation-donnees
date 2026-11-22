@@ -6,16 +6,34 @@ from datetime import datetime
 from flask import Flask, Response, jsonify, redirect, render_template_string, request
 
 app = Flask(__name__)
-FICHIER = "saisies.csv"
+app.config["FICHIER"] = "saisies.csv"  # modifiable (les tests utilisent un fichier temporaire)
 COLONNES = ["date", "operateur", "piece", "quantite"]
 
 
 def lire_saisies():
     """Lit le CSV et renvoie une liste de dictionnaires."""
-    if not os.path.exists(FICHIER):
+    fichier = app.config["FICHIER"]
+    if not os.path.exists(fichier):
         return []
-    with open(FICHIER, newline="", encoding="utf-8") as f:
+    with open(fichier, newline="", encoding="utf-8") as f:
         return [dict(zip(COLONNES, ligne)) for ligne in csv.reader(f) if ligne]
+
+
+def valider(form):
+    """Vérifie une saisie côté serveur. Renvoie (données, erreur).
+
+    Correction de l'anomalie ANO-001 : la contrainte min=1 du formulaire HTML
+    pouvait être contournée ; le serveur acceptait des quantités négatives,
+    non numériques et des champs vides.
+    """
+    operateur = form.get("operateur", "").strip()
+    piece = form.get("piece", "").strip()
+    quantite = form.get("quantite", "").strip()
+    if not operateur or not piece:
+        return None, "L'opérateur et la référence pièce sont obligatoires."
+    if not quantite.isdigit() or int(quantite) < 1:
+        return None, "La quantité doit être un nombre entier supérieur ou égal à 1."
+    return {"operateur": operateur, "piece": piece, "quantite": int(quantite)}, None
 
 
 def filtrer(saisies, recherche):
@@ -50,6 +68,7 @@ PAGE = """
   td { padding: 10px; border-bottom: 1px solid #eee; }
   tr:nth-child(even) td { background: #fafafa; }
   .vide { color: #999; text-align: center; padding: 20px; }
+  .erreur { background: #fdecec; color: #b42318; border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 14px; }
   .compteur { color: #666; font-size: 13px; margin-top: 8px; }
 </style>
 </head>
@@ -63,6 +82,7 @@ PAGE = """
     <input name="quantite" type="number" min="1" placeholder="Quantité" required>
     <button>Enregistrer</button>
   </form>
+  {% if erreur %}<div class="erreur" role="alert">{{ erreur }}</div>{% endif %}
 
   <form method="get" class="outils">
     <input name="q" value="{{ q }}" placeholder="Rechercher un opérateur ou une pièce">
@@ -89,16 +109,20 @@ PAGE = """
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        with open(FICHIER, "a", newline="", encoding="utf-8") as f:
+        donnees, erreur = valider(request.form)
+        if erreur:
+            # La saisie est refusée : rien n'est enregistré, le message s'affiche.
+            return render_template_string(PAGE, saisies=lire_saisies(), q="", erreur=erreur), 400
+        with open(app.config["FICHIER"], "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([
                 datetime.now().strftime("%d/%m/%Y %H:%M"),
-                request.form["operateur"].strip(),
-                request.form["piece"].strip(),
-                request.form["quantite"],
+                donnees["operateur"],
+                donnees["piece"],
+                donnees["quantite"],
             ])
         return redirect("/")
     q = request.args.get("q", "").strip()
-    return render_template_string(PAGE, saisies=filtrer(lire_saisies(), q), q=q)
+    return render_template_string(PAGE, saisies=filtrer(lire_saisies(), q), q=q, erreur=None)
 
 
 @app.route("/export")
