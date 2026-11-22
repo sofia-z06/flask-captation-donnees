@@ -1,5 +1,7 @@
 # Captation de données atelier (Flask)
 
+**Démo en ligne :**
+
 Mini-outil web pour déclarer les sorties de pièces en atelier, pensé pour des utilisateurs non informaticiens.
 
 ![Aperçu](capture.png)
@@ -29,9 +31,25 @@ J'ai appliqué à cet outil la démarche d'une Business Analyst : du besoin aux 
 |---|---|
 | Expression du besoin, personas, 4 user stories et critères d'acceptation | [docs/user-stories.md](docs/user-stories.md) |
 | Scénarios Gherkin (français) automatisés avec `behave` (équivalent Python de Cucumber) | [features/](features/) |
-| Plan de test et bilan de campagne (13 scénarios) | [docs/plan-de-test.md](docs/plan-de-test.md) |
-| Rapport d'anomalie : saisies invalides acceptées par le serveur, puis corrigées | [docs/rapport-anomalie.md](docs/rapport-anomalie.md) |
+| Plan de test et bilan de campagne (18 scénarios) | [docs/plan-de-test.md](docs/plan-de-test.md) |
+| Rapports d'anomalie : saisies invalides (ANO-001) et injection de formules CSV (ANO-002), corrigées | [docs/rapport-anomalie.md](docs/rapport-anomalie.md) |
 
 ```bash
-behave --lang fr   # 13 scénarios, 49 étapes
+behave --lang fr   # 18 scénarios, 66 étapes
 ```
+
+## Sécurité de la démo en ligne
+
+| Risque | Protection |
+|---|---|
+| Un visiteur modifie ce que voient les autres | Mode démo : les saisies de chaque visiteur restent dans sa session (cookie signé) |
+| Spam, textes géants | 40 caractères max par champ, 20 saisies max par visiteur, requêtes de 16 Ko max |
+| Injection de code HTML / JavaScript | Échappement automatique des templates + Content-Security-Policy sans script |
+| Injection de formules dans l'export Excel | Neutralisation des cellules commençant par `=`, `+`, `-`, `@` (ANO-002) |
+| Affichage de la page dans un cadre (clickjacking) | `X-Frame-Options: DENY` et `frame-ancestors 'none'` |
+| Console de debug exposée | Debug uniquement en local ; en ligne, l'appli tourne avec gunicorn |
+| Clé secrète dans le code | Générée par l'hébergeur et lue dans une variable d'environnement |
+
+## Déploiement (Render)
+Le fichier `render.yaml` configure tout : `DEMO_MODE=1`, clé secrète générée automatiquement,
+lancement avec `gunicorn app:app`.

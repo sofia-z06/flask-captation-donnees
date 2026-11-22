@@ -10,6 +10,7 @@ Vérifier que l'outil de captation répond aux user stories US-01 à US-04
 | Saisie et validation côté serveur | Performance / montée en charge |
 | Recherche / filtre | Compatibilité navigateurs |
 | Export CSV | Authentification (non prévue à ce stade) |
+| Sécurité de la démo en ligne | |
 | API JSON | |
 
 ## Approche
@@ -36,11 +37,17 @@ Vérifier que l'outil de captation répond aux user stories US-01 à US-04
 | CT-11 | US-03 | Export respectant le filtre | Nominal | ✅ |
 | CT-12 | US-04 | API : liste complète | Nominal | ✅ |
 | CT-13 | US-04 | API : filtre `?q=` | Nominal | ✅ |
+| CT-14 | US-03 | Formule Excel neutralisée à l'export | Sécurité | ✅ (corrige ANO-002) |
+| CT-15 | US-01 | Champ de plus de 40 caractères refusé | Sécurité | ✅ |
+| CT-16 | Démo | Saisies d'un visiteur invisibles pour les autres | Sécurité | ✅ |
+| CT-17 | Démo | Limite de 20 saisies par visiteur | Sécurité | ✅ |
+| CT-18 | Toutes | En-têtes de sécurité HTTP présents | Sécurité | ✅ |
 
 ## Bilan de la campagne
 - **Première exécution** : 8 scénarios réussis, **5 en échec** → anomalie
   [ANO-001](rapport-anomalie.md) ouverte.
 - **Après correction** : **13 scénarios sur 13 réussis**, 49 étapes.
+- **Revue de sécurité avant mise en ligne** : anomalie [ANO-002](rapport-anomalie.md) corrigée et 5 scénarios de sécurité ajoutés : **18 scénarios sur 18 réussis**, 66 étapes.
 
 ## Lancer les tests
 ```bash
